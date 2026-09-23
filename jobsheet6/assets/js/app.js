@@ -110,9 +110,59 @@ function initValidasiForm() {
     });
 }
 
+async function muatDataGenerik(urlJson, daftarKunci) {
+    const tbody = document.querySelector(".table-responsive table tbody");
+    const loading = document.getElementById("loading-indicator");
+    if (!tbody) return; 
+    loading.style.display = "block";
+    tbody.innerHTML = "";
+
+    try {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const res = await fetch(urlJson);
+        if (!res.ok) {
+            throw new Error("Gagal mengambil data (status " + res.status + ")");
+        }
+        
+        const dataJson = await res.json();
+        dataJson.forEach(function (item) {
+            const tr = document.createElement("tr");
+            
+            let htmlKolom = "";
+            daftarKunci.forEach(function(kunci) {
+                htmlKolom += "<td>" + (item[kunci] || "-") + "</td>";
+            });
+
+            htmlKolom += "<td>" +
+                "<button type=\"button\">Edit</button> " +
+                "<button type=\"button\" class=\"btn-hapus\">Hapus</button>" +
+                "</td>";
+
+            tr.innerHTML = htmlKolom;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        const totalKolom = daftarKunci.length + 1;
+        tbody.innerHTML = 
+            "<tr><td colspan=\"" + totalKolom + "\">Gagal memuat data: " + err.message + "</td></tr>";
+    } finally {
+        loading.style.display = "none";
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     initNavToggle();
     initHapusConfirm();
     initTableFilter();
     initValidasiForm();
+
+    const isHalamanBuku = document.title.toLowerCase().includes("buku");
+    const isHalamanAnggota = document.title.toLowerCase().includes("anggota");
+
+    if (isHalamanBuku) {
+        muatDataGenerik("../data/buku.json", ["judul", "pengarang", "tahun", "stok", "kategori"]);
+    } else if (isHalamanAnggota) {
+        muatDataGenerik("../data/anggota.json", ["no_anggota", "nama", "alamat", "no_hp"]);
+    }
 });
